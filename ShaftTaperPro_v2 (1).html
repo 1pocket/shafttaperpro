@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShaftTaperPro v2 - CNC Pool Cue Shaft Taper Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0c10;
+            --bg-card: #12151c;
+            --bg-input: #1a1e28;
+            --border: #2a3040;
+            --text-primary: #e8eaef;
+            --text-secondary: #8892a6;
+            --text-muted: #5a6478;
+            --accent-blue: #4a7cff;
+            --accent-cyan: #00d4ff;
+            --accent-green: #00ff88;
+            --accent-red: #ff4466;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .app-container {
+            display: grid;
+            grid-template-columns: 420px 1fr 400px;
+            grid-template-rows: auto 1fr;
+            min-height: 100vh;
+        }
+        header {
+            grid-column: 1 / -1;
+            padding: 16px 32px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { display: flex; align-items: center; gap: 16px; }
+        .logo-icon {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: 700; color: var(--bg-dark);
+        }
+        .logo-text h1 { font-size: 22px; font-weight: 700; }
+        .logo-text span { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; }
+        .header-actions { display: flex; gap: 12px; }
+        .panel { padding: 20px; overflow-y: auto; border-right: 1px solid var(--border); }
+        .panel:last-child { border-right: none; }
+        .panel-title {
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--text-muted); margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .panel-title::before { content: ''; width: 3px; height: 12px; background: var(--accent-blue); border-radius: 2px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+        .form-group label .unit { color: var(--text-muted); font-size: 11px; }
+        input[type="number"], select {
+            width: 100%; padding: 10px 14px;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 14px;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent-blue); }
+        select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238892a6' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 8px;
+            font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-secondary { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-success { background: linear-gradient(135deg, var(--accent-green), #00cc6a); color: var(--bg-dark); }
+        .btn-sm { padding: 8px 14px; font-size: 12px; }
+        .presets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+        .preset-btn {
+            padding: 10px; background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text-secondary); font-size: 11px; cursor: pointer; text-align: left;
+        }
+        .preset-btn:hover { border-color: var(--accent-blue); color: var(--text-primary); }
+        .preset-btn.active { border-color: var(--accent-blue); background: rgba(74, 124, 255, 0.15); color: var(--accent-cyan); }
+        .preset-btn .preset-name { display: block; font-weight: 600; margin-bottom: 2px; }
+        .preset-btn .preset-desc { font-size: 9px; color: var(--text-muted); }
+        .diameter-inputs-container {
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px;
+            padding: 14px; max-height: 380px; overflow-y: auto;
+        }
+        .diameter-header {
+            display: grid; grid-template-columns: 80px 1fr 55px; gap: 8px;
+            padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+            font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);
+        }
+        .diameter-row { display: grid; grid-template-columns: 80px 1fr 55px; gap: 8px; align-items: center; padding: 3px 0; }
+        .diameter-row .position-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-secondary); }
+        .diameter-row .position-label.tip { color: var(--accent-green); font-weight: 600; }
+        .diameter-row .position-label.joint { color: var(--accent-red); font-weight: 600; }
+        .diameter-row input { padding: 6px 8px; font-size: 12px; }
+        .diameter-row .change-indicator { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-align: right; }
+        .diameter-row .change-indicator.positive { color: var(--accent-green); }
+        .diameter-row .change-indicator.negative { color: var(--accent-cyan); }
+        .diameter-row .change-indicator.zero { color: var(--text-muted); }
+        .section-divider { height: 1px; background: var(--border); margin: 16px 0; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .quick-fill { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .quick-fill-btn {
+            padding: 5px 10px; background: transparent; border: 1px solid var(--border);
+            border-radius: 6px; color: var(--text-muted); font-size: 10px; cursor: pointer;
+        }
+        .quick-fill-btn:hover { border-color: var(--accent-blue); color: var(--accent-cyan); }
+        .viz-panel { background: var(--bg-card); display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+        .viz-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .viz-controls { display: flex; gap: 6px; }
+        .viz-control-btn {
+            width: 32px; height: 32px; background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 6px; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .viz-control-btn:hover { border-color: var(--accent-blue); color: var(--accent-cyan); }
+        .viz-control-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
+        .shaft-canvas-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 30px; position: relative; }
+        .dimension-overlay {
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 20px; background: rgba(18, 21, 28, 0.9);
+            padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border);
+        }
+        .dimension-item { text-align: center; }
+        .dimension-item .value { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: var(--accent-cyan); }
+        .dimension-item .label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; }
+        .gcode-panel { background: var(--bg-card); display: flex; flex-direction: column; }
+        .gcode-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .gcode-actions { display: flex; gap: 6px; }
+        .gcode-settings { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+        .gcode-editor { flex: 1; padding: 14px; overflow: auto; }
+        .gcode-content { font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.5; color: var(--text-secondary); white-space: pre; }
+        .gcode-line { display: block; padding-left: 35px; position: relative; }
+        .gcode-line::before { content: counter(line); counter-increment: line; position: absolute; left: 0; width: 28px; text-align: right; color: var(--text-muted); font-size: 9px; opacity: 0.5; }
+        .gcode-line.comment { color: var(--accent-green); opacity: 0.7; }
+        .gcode-line.command { color: var(--accent-blue); }
+        .gcode-line.movement { color: var(--text-primary); }
+        .stats-bar { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 20px; background: var(--bg-input); }
+        .stat-item { display: flex; flex-direction: column; gap: 2px; }
+        .stat-item .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; }
+        .stat-item .stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; padding: 14px 20px;
+            background: var(--bg-card); border: 1px solid var(--accent-green); border-radius: 10px;
+            display: flex; align-items: center; gap: 10px; z-index: 1000; animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">ST</div>
+                <div class="logo-text">
+                    <h1>ShaftTaperPro</h1>
+                    <span>CNC Taper Generator v2.0</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadProject()">Load</button>
+                <button class="btn btn-secondary" onclick="saveProject()">Save</button>
+                <button class="btn btn-success" onclick="exportGCode()">Export G-Code</button>
+            </div>
+        </header>
+
+        <div class="panel" style="background: var(--bg-card);">
+            <div class="panel-title">Shaft Configuration</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Shaft Length</label>
+                    <select id="shaftLength" onchange="rebuildDiameterInputs()">
+                        <option value="29">29 inches</option>
+                        <option value="30">30 inches</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Input Interval</label>
+                    <select id="inputInterval" onchange="rebuildDiameterInputs()">
+                        <option value="1">Every 1"</option>
+                        <option value="0.5">Every 1/2"</option>
+                        <option value="0.25">Every 1/4"</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Stock Diameter <span class="unit">(mm)</span></label>
+                    <input type="number" id="stockDiameter" value="12.75" step="0.05" min="10" max="15" onchange="updateVisualization(); updateGCode();">
+                </div>
+                <div class="form-group">
+                    <label>Ferrule Length <span class="unit">(in)</span></label>
+                    <input type="number" id="ferruleLength" value="1.0" step="0.125" min="0.5" max="1.5" onchange="updateVisualization()">
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+            <div class="panel-title">Quick Presets</div>
+            <div class="presets-grid">
+                <button class="preset-btn" onclick="loadPreset('pro-taper')"><span class="preset-name">Pro Taper</span><span class="preset-desc">12.75mm, gradual</span></button>
+                <button class="preset-btn" onclick="loadPreset('european')"><span class="preset-name">European</span><span class="preset-desc">11mm tip</span></button>
+                <button class="preset-btn" onclick="loadPreset('straight')"><span class="preset-name">Straight</span><span class="preset-desc">Minimal taper</span></button>
+                <button class="preset-btn" onclick="loadPreset('conical')"><span class="preset-name">Conical</span><span class="preset-desc">Classic cone</span></button>
+                <button class="preset-btn" onclick="loadPreset('predator')"><span class="preset-name">Predator</span><span class="preset-desc">Low deflection</span></button>
+                <button class="preset-btn" onclick="loadPreset('snooker')"><span class="preset-name">Snooker</span><span class="preset-desc">9.5mm tip</span></button>
+            </div>
+
+            <div class="section-divider"></div>
+            <div class="panel-title">Diameter Profile <span style="font-weight:400;text-transform:none;letter-spacing:0;margin-left:8px" id="pointCount">(30 points)</span></div>
+            <div class="quick-fill">
+                <button class="quick-fill-btn" onclick="fillLinear()">Linear Fill</button>
+                <button class="quick-fill-btn" onclick="fillFromStock()">Copy Stock</button>
+                <button class="quick-fill-btn" onclick="smoothProfile()">Smooth</button>
+            </div>
+            <div class="diameter-inputs-container">
+                <div class="diameter-header"><span>Position</span><span>Diameter (mm)</span><span>Δ</span></div>
+                <div id="diameterInputs"></div>
+            </div>
+        </div>
+
+        <div class="viz-panel">
+            <div class="viz-header">
+                <div class="panel-title" style="margin-bottom:0">Shaft Preview</div>
+                <div class="viz-controls">
+                    <button class="viz-control-btn active" id="viewExaggerated" onclick="setView('exaggerated')" title="Exaggerated">+</button>
+                    <button class="viz-control-btn" id="viewActual" onclick="setView('actual')" title="Actual">1:1</button>
+                </div>
+            </div>
+            <div class="shaft-canvas-container">
+                <canvas id="shaftCanvas" width="750" height="350"></canvas>
+            </div>
+            <div class="dimension-overlay" id="dimensionOverlay">
+                <div class="dimension-item"><div class="value" id="dimLength">29.00"</div><div class="label">Length</div></div>
+                <div class="dimension-item"><div class="value" id="dimTip">12.75mm</div><div class="label">Tip</div></div>
+                <div class="dimension-item"><div class="value" id="dimJoint">12.75mm</div><div class="label">Joint</div></div>
+                <div class="dimension-item"><div class="value" id="dimMin">12.50mm</div><div class="label">Min</div></div>
+            </div>
+        </div>
+
+        <div class="gcode-panel">
+            <div class="gcode-header">
+                <div class="panel-title" style="margin-bottom:0">G-Code</div>
+                <div class="gcode-actions"><button class="btn btn-secondary btn-sm" onclick="copyGCode()">Copy</button></div>
+            </div>
+            <div class="gcode-settings">
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom:10px">
+                        <label>Post Processor</label>
+                        <select id="postProcessor" onchange="updateGCode()">
+                            <option value="techno-isel">Techno Isel</option>
+                            <option value="grbl">GRBL</option>
+                            <option value="mach3">Mach3</option>
+                            <option value="linuxcnc">LinuxCNC</option>
+                            <option value="fanuc">Fanuc</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:10px">
+                        <label>Units</label>
+                        <select id="units" onchange="updateGCode()">
+                            <option value="inch">Inches</option>
+                            <option value="mm">Millimeters</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom:10px"><label>Feed <span class="unit">(in/min)</span></label><input type="number" id="feedRate" value="30" onchange="updateGCode()"></div>
+                    <div class="form-group" style="margin-bottom:10px"><label>Step Over <span class="unit">(in)</span></label><input type="number" id="stepOver" value="0.010" step="0.001" onchange="updateGCode()"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom:0"><label>Safe Z <span class="unit">(in)</span></label><input type="number" id="safeZ" value="0.5" onchange="updateGCode()"></div>
+                    <div class="form-group" style="margin-bottom:0"><label>Spindle <span class="unit">(RPM)</span></label><input type="number" id="spindleSpeed" value="0" onchange="updateGCode()"></div>
+                </div>
+            </div>
+            <div class="gcode-editor"><div class="gcode-content" id="gcodeOutput" style="counter-reset:line"></div></div>
+            <div class="stats-bar">
+                <div class="stat-item"><span class="stat-value" id="statLines">0</span><span class="stat-label">Lines</span></div>
+                <div class="stat-item"><span class="stat-value" id="statPasses">0</span><span class="stat-label">Passes</span></div>
+                <div class="stat-item"><span class="stat-value" id="statTime">0:00</span><span class="stat-label">Time</span></div>
+                <div class="stat-item"><span class="stat-value" id="statRemoval">0.000"</span><span class="stat-label">Max Cut</span></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let diameterProfile = {};
+        let currentView = 'exaggerated';
+
+        const presets = {
+            'pro-taper': { stockDiameter: 12.75, ferruleLength: 1.0, profile: { 0: 12.75, 4: 12.6, 8: 12.5, 12: 12.45, 16: 12.5, 20: 12.6, 24: 12.7, 29: 12.75, 30: 12.75 } },
+            'european': { stockDiameter: 12.0, ferruleLength: 0.875, profile: { 0: 11.0, 4: 11.3, 8: 11.5, 12: 11.7, 16: 11.8, 20: 11.9, 24: 11.95, 29: 12.0, 30: 12.0 } },
+            'straight': { stockDiameter: 12.75, ferruleLength: 1.0, profile: { 0: 12.4, 14: 12.55, 29: 12.75, 30: 12.75 } },
+            'conical': { stockDiameter: 13.0, ferruleLength: 1.0, profile: { 0: 12.0, 29: 13.0, 30: 13.0 } },
+            'predator': { stockDiameter: 12.75, ferruleLength: 1.0, profile: { 0: 11.85, 3: 11.9, 6: 12.0, 10: 12.2, 15: 12.4, 20: 12.55, 25: 12.7, 29: 12.75, 30: 12.75 } },
+            'snooker': { stockDiameter: 11.0, ferruleLength: 0.75, profile: { 0: 9.5, 6: 9.8, 12: 10.2, 18: 10.5, 24: 10.8, 29: 11.0, 30: 11.0 } }
+        };
+
+        const postProcessors = {
+            'techno-isel': {
+                header: (c) => `; ShaftTaperPro v2.0 - Techno Isel\n; ${new Date().toISOString()}\n${c.units==='inch'?'G20':'G21'}\nG90\nG17\nG40\nG49\nG54\n${c.spindleSpeed>0?'M3 S'+c.spindleSpeed:'; Spindle external'}\nG4 P2\n`,
+                footer: () => `G0 Z0.5\nM5\nG0 X0 Y0\nM30\n`,
+                rapid: (x,y,z) => `G0 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''}`,
+                linear: (x,y,z,f) => `G1 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''} F${f}`,
+                comment: (t) => `; ${t}`
+            },
+            'grbl': {
+                header: (c) => `; GRBL\n$H\n${c.units==='inch'?'G20':'G21'}\nG90\nG17\n${c.spindleSpeed>0?'M3 S'+c.spindleSpeed:''}\nG4 P2\n`,
+                footer: () => `G0 Z0.5\nM5\nG0 X0 Y0\nM2\n`,
+                rapid: (x,y,z) => `G0 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''}`,
+                linear: (x,y,z,f) => `G1 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''} F${f}`,
+                comment: (t) => `; ${t}`
+            },
+            'mach3': {
+                header: (c) => `( Mach3 )\n${c.units==='inch'?'G20':'G21'}\nG90 G40 G80\nG17\n${c.spindleSpeed>0?'M03 S'+c.spindleSpeed:''}\nG04 P2.0\n`,
+                footer: () => `G00 Z0.5\nM05\nG00 X0 Y0\nM30\n`,
+                rapid: (x,y,z) => `G00 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''}`,
+                linear: (x,y,z,f) => `G01 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''} F${f.toFixed(1)}`,
+                comment: (t) => `( ${t} )`
+            },
+            'linuxcnc': {
+                header: (c) => `; LinuxCNC\n${c.units==='inch'?'G20':'G21'}\nG90\nG17\nG40\nG49\nG54\n${c.spindleSpeed>0?'S'+c.spindleSpeed+' M3':''}\nG4 P2\n`,
+                footer: () => `G0 Z0.5\nM5\nG0 X0 Y0\nM2\n%\n`,
+                rapid: (x,y,z) => `G0 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''}`,
+                linear: (x,y,z,f) => `G1 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''} F${f}`,
+                comment: (t) => `; ${t}`
+            },
+            'fanuc': {
+                header: (c) => `%\nO0001\n${c.units==='inch'?'G20':'G21'}\nG90 G40 G80\nG17\nG54\n${c.spindleSpeed>0?'M03 S'+c.spindleSpeed:''}\nG04 P2000\n`,
+                footer: () => `G00 Z0.5\nM05\nG00 X0 Y0\nM30\n%\n`,
+                rapid: (x,y,z) => `G00 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''}`,
+                linear: (x,y,z,f) => `G01 X${x.toFixed(4)} Y${y.toFixed(4)}${z!==undefined?' Z'+z.toFixed(4):''} F${f.toFixed(0)}`,
+                comment: (t) => `(${t.toUpperCase()})`
+            }
+        };
+
+        function init() { rebuildDiameterInputs(); }
+
+        function rebuildDiameterInputs() {
+            const shaftLen = parseInt(document.getElementById('shaftLength').value);
+            const interval = parseFloat(document.getElementById('inputInterval').value);
+            const stockDia = parseFloat(document.getElementById('stockDiameter').value);
+            const container = document.getElementById('diameterInputs');
+            container.innerHTML = '';
+            const newProfile = {};
+            for (let i = 0; i <= shaftLen; i += interval) {
+                const pos = Math.round(i * 1000) / 1000;
+                newProfile[pos] = diameterProfile[pos] !== undefined ? diameterProfile[pos] : (interpolateDia(pos) || stockDia);
+            }
+            diameterProfile = newProfile;
+            const positions = Object.keys(diameterProfile).map(Number).sort((a,b) => a - b);
+            document.getElementById('pointCount').textContent = `(${positions.length} points)`;
+            positions.forEach((pos, idx) => {
+                const row = document.createElement('div');
+                row.className = 'diameter-row';
+                const lbl = document.createElement('span');
+                lbl.className = 'position-label' + (pos === 0 ? ' tip' : pos === shaftLen ? ' joint' : '');
+                lbl.textContent = pos === 0 ? '0" (Tip)' : pos === shaftLen ? `${formatPos(pos)}" (Jt)` : `${formatPos(pos)}"`;
+                const inp = document.createElement('input');
+                inp.type = 'number'; inp.value = diameterProfile[pos].toFixed(3);
+                inp.step = '0.01'; inp.min = '8'; inp.max = '15'; inp.dataset.position = pos;
+                inp.onchange = function() { diameterProfile[parseFloat(this.dataset.position)] = parseFloat(this.value); updateChangeIndicators(); updateVisualization(); updateGCode(); };
+                const chg = document.createElement('span');
+                chg.className = 'change-indicator'; chg.id = `change-${idx}`;
+                row.appendChild(lbl); row.appendChild(inp); row.appendChild(chg);
+                container.appendChild(row);
+            });
+            updateChangeIndicators(); updateVisualization(); updateGCode();
+        }
+
+        function formatPos(p) { return p === Math.floor(p) ? p.toString() : p % 0.5 === 0 ? p.toFixed(1) : p.toFixed(2); }
+
+        function updateChangeIndicators() {
+            const positions = Object.keys(diameterProfile).map(Number).sort((a,b) => a - b);
+            positions.forEach((pos, idx) => {
+                const el = document.getElementById(`change-${idx}`);
+                if (!el) return;
+                if (idx === 0) { el.textContent = '—'; el.className = 'change-indicator zero'; }
+                else {
+                    const diff = diameterProfile[pos] - diameterProfile[positions[idx-1]];
+                    if (Math.abs(diff) < 0.001) { el.textContent = '—'; el.className = 'change-indicator zero'; }
+                    else if (diff > 0) { el.textContent = `+${diff.toFixed(2)}`; el.className = 'change-indicator positive'; }
+                    else { el.textContent = diff.toFixed(2); el.className = 'change-indicator negative'; }
+                }
+            });
+        }
+
+        function interpolateDia(pos) {
+            const positions = Object.keys(diameterProfile).map(Number).sort((a,b) => a - b);
+            if (positions.length === 0) return null;
+            if (pos <= positions[0]) return diameterProfile[positions[0]];
+            if (pos >= positions[positions.length-1]) return diameterProfile[positions[positions.length-1]];
+            for (let i = 0; i < positions.length - 1; i++) {
+                if (pos >= positions[i] && pos <= positions[i+1]) {
+                    const t = (pos - positions[i]) / (positions[i+1] - positions[i]);
+                    return diameterProfile[positions[i]] + t * (diameterProfile[positions[i+1]] - diameterProfile[positions[i]]);
+                }
+            }
+            return null;
+        }
+
+        function getDiaAt(pos) {
+            const positions = Object.keys(diameterProfile).map(Number).sort((a,b) => a - b);
+            if (positions.length === 0) return 12.75;
+            if (pos <= positions[0]) return diameterProfile[positions[0]];
+            if (pos >= positions[positions.length-1]) return diameterProfile[positions[positions.length-1]];
+            for (let i = 0; i < positions.length - 1; i++) {
+                if (pos >= positions[i] && pos <= positions[i+1]) {
+                    const t = (pos - positions[i]) / (positions[i+1] - positions[i]);
+                    const st = t * t * (3 - 2 * t);
+                    return diameterProfile[positions[i]] + st * (diameterProfile[positions[i+1]] - diameterProfile[positions[i]]);
+                }
+            }
+            return 12.75;
+        }
+
+        function fillLinear() {
+            const positions = Object.keys(diameterProfile).map(Number).sort((a,b) => a - b);
+            if (positions.length < 2) return;
+            const tipDia = diameterProfile[positions[0]];
+            const jointDia = diameterProfile[positions[positions.length-1]];
+            const len = positions[positions.length-1];
+            positions.forEach(p => { diameterProfile[p] = tipDia + (jointDia - tipDia) * (p / len); });
+            refreshInputs();
+        }
+
+        function fillFromStock() {
+            const stockDia = parseFloat(document.getElementById('stockDiameter').value);
+            Object.keys(diameterProfile).forEach(p => { diameterProfile[p] = stockDia; });
+            refreshInputs();
+        }
+
+        function smoothProfile() {
+            const positions = Object.keys(diameterProfile).map(Number).sort((a,b) => a - b);
+            if (positions.length < 3) return;
+            const smoothed = {};
+            smoothed[positions[0]] = diameterProfile[positions[0]];
+            smoothed[positions[positions.length-1]] = diameterProfile[positions[positions.length-1]];
+            for (let i = 1; i < positions.length - 1; i++) {
+                smoothed[positions[i]] = (diameterProfile[positions[i-1]] + diameterProfile[positions[i]] * 2 + diameterProfile[positions[i+1]]) / 4;
+            }
+            Object.assign(diameterProfile, smoothed);
+            refreshInputs();
+        }
+
+        function refreshInputs() {
+            document.querySelectorAll('#diameterInputs input').forEach(inp => {
+                inp.value = diameterProfile[parseFloat(inp.dataset.position)].toFixed(3);
+            });
+            updateChangeIndicators(); updateVisualization(); updateGCode();
+        }
+
+        function loadPreset(id) {
+            const p = presets[id];
+            if (!p) return;
+            document.getElementById('stockDiameter').value = p.stockDiameter;
+            document.getElementById('ferruleLength').value = p.ferruleLength;
+            const shaftLen = parseInt(document.getElementById('shaftLength').value);
+            const interval = parseFloat(document.getElementById('inputInterval').value);
+            const presetPos = Object.keys(p.profile).map(Number).sort((a,b) => a - b);
+            for (let pos = 0; pos <= shaftLen; pos += interval) {
+                const rPos = Math.round(pos * 1000) / 1000;
+                let dia = p.stockDiameter;
+                for (let i = 0; i < presetPos.length - 1; i++) {
+                    if (rPos >= presetPos[i] && rPos <= presetPos[i+1]) {
+                        const t = (rPos - presetPos[i]) / (presetPos[i+1] - presetPos[i]);
+                        dia = p.profile[presetPos[i]] + t * (p.profile[presetPos[i+1]] - p.profile[presetPos[i]]);
+                        break;
+                    }
+                }
+                if (rPos <= presetPos[0]) dia = p.profile[presetPos[0]];
+                else if (rPos >= presetPos[presetPos.length-1]) dia = p.profile[presetPos[presetPos.length-1]];
+                diameterProfile[rPos] = dia;
+            }
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            event.target.closest('.preset-btn').classList.add('active');
+            refreshInputs();
+        }
+
+        function updateVisualization() {
+            const canvas = document.getElementById('shaftCanvas');
+            const ctx = canvas.getContext('2d');
+            const shaftLen = parseInt(document.getElementById('shaftLength').value);
+            const ferruleLen = parseFloat(document.getElementById('ferruleLength').value);
+            const positions = Object.keys(diameterProfile).map(Number).sort((a,b) => a - b);
+            if (positions.length === 0) return;
+            const tipDia = diameterProfile[positions[0]];
+            const jointDia = diameterProfile[positions[positions.length-1]];
+            const minDia = Math.min(...Object.values(diameterProfile));
+            const maxDia = Math.max(...Object.values(diameterProfile));
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const pad = 50;
+            const scaleX = (canvas.width - pad * 2) / shaftLen;
+            const scaleY = currentView === 'exaggerated' ? (canvas.height - pad * 2) / (maxDia * 2.5) : scaleX * 25.4;
+            const centerY = canvas.height / 2;
+            ctx.strokeStyle = 'rgba(74,124,255,0.08)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+            ctx.beginPath(); ctx.moveTo(pad, centerY); ctx.lineTo(canvas.width - pad, centerY); ctx.stroke();
+            for (let i = 0; i <= shaftLen; i += 5) { ctx.beginPath(); ctx.moveTo(pad + i * scaleX, pad); ctx.lineTo(pad + i * scaleX, canvas.height - pad); ctx.stroke(); }
+            ctx.setLineDash([]);
+            const grad = ctx.createLinearGradient(0, centerY - 40, 0, centerY + 40);
+            grad.addColorStop(0, '#d4a574'); grad.addColorStop(0.5, '#b8865a'); grad.addColorStop(1, '#8b6240');
+            ctx.beginPath();
+            for (let i = 0; i <= 200; i++) {
+                const pos = (i / 200) * shaftLen;
+                const dia = getDiaAt(pos);
+                const x = pad + pos * scaleX;
+                const y = centerY - (dia / 2) * scaleY;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            for (let i = 200; i >= 0; i--) {
+                const pos = (i / 200) * shaftLen;
+                const dia = getDiaAt(pos);
+                ctx.lineTo(pad + pos * scaleX, centerY + (dia / 2) * scaleY);
+            }
+            ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+            ctx.strokeStyle = '#5a3d28'; ctx.lineWidth = 2; ctx.stroke();
+            const ferruleEndX = pad + ferruleLen * scaleX;
+            ctx.fillStyle = '#e8e8e0';
+            ctx.beginPath();
+            ctx.moveTo(pad, centerY - (tipDia / 2) * scaleY);
+            ctx.lineTo(ferruleEndX, centerY - (getDiaAt(ferruleLen) / 2) * scaleY);
+            ctx.lineTo(ferruleEndX, centerY + (getDiaAt(ferruleLen) / 2) * scaleY);
+            ctx.lineTo(pad, centerY + (tipDia / 2) * scaleY);
+            ctx.closePath(); ctx.fill();
+            const interval = parseFloat(document.getElementById('inputInterval').value);
+            const showEvery = interval >= 0.5 ? 1 : 2;
+            positions.forEach((pos, idx) => {
+                if (idx % showEvery !== 0 && idx !== 0 && idx !== positions.length - 1) return;
+                const x = pad + pos * scaleX;
+                const dia = diameterProfile[pos];
+                ctx.fillStyle = idx === 0 ? '#00ff88' : idx === positions.length - 1 ? '#ff4466' : '#4a7cff';
+                ctx.beginPath(); ctx.arc(x, centerY - (dia / 2) * scaleY, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x, centerY + (dia / 2) * scaleY, 3, 0, Math.PI * 2); ctx.fill();
+            });
+            ctx.fillStyle = '#8892a6'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center';
+            for (let i = 0; i <= shaftLen; i += 5) ctx.fillText(`${i}"`, pad + i * scaleX, canvas.height - 20);
+            document.getElementById('dimLength').textContent = `${shaftLen}.00"`;
+            document.getElementById('dimTip').textContent = `${tipDia.toFixed(2)}mm`;
+            document.getElementById('dimJoint').textContent = `${jointDia.toFixed(2)}mm`;
+            document.getElementById('dimMin').textContent = `${minDia.toFixed(2)}mm`;
+        }
+
+        function setView(v) {
+            currentView = v;
+            document.getElementById('viewExaggerated').classList.toggle('active', v === 'exaggerated');
+            document.getElementById('viewActual').classList.toggle('active', v === 'actual');
+            updateVisualization();
+        }
+
+        function updateGCode() {
+            const pp = postProcessors[document.getElementById('postProcessor').value];
+            const shaftLen = parseInt(document.getElementById('shaftLength').value);
+            const positions = Object.keys(diameterProfile).map(Number).sort((a,b) => a - b);
+            if (positions.length === 0) return;
+            const config = {
+                shaftLength: shaftLen,
+                tipDiameter: diameterProfile[positions[0]],
+                jointDiameter: diameterProfile[positions[positions.length-1]],
+                feedRate: parseFloat(document.getElementById('feedRate').value),
+                spindleSpeed: parseInt(document.getElementById('spindleSpeed').value),
+                stepOver: parseFloat(document.getElementById('stepOver').value),
+                safeZ: parseFloat(document.getElementById('safeZ').value),
+                units: document.getElementById('units').value
+            };
+            const stockDia = parseFloat(document.getElementById('stockDiameter').value);
+            const stockRadius = (stockDia / 25.4) / 2;
+            const minDia = Math.min(...Object.values(diameterProfile));
+            const minRadius = (minDia / 25.4) / 2;
+            const maxCut = stockRadius - minRadius;
+            let gcode = [], passCount = 0, totalDist = 0;
+            gcode.push(...pp.header(config).split('\n').filter(l => l));
+            const numPasses = Math.ceil(maxCut / config.stepOver);
+            passCount = numPasses;
+            gcode.push(pp.comment('Begin taper cutting'));
+            gcode.push(pp.rapid(0, 0, config.safeZ));
+            for (let pass = 1; pass <= numPasses; pass++) {
+                const depth = Math.min(pass * config.stepOver, maxCut);
+                gcode.push(pp.comment(`Pass ${pass}/${numPasses} - ${depth.toFixed(4)}"`));
+                const tipTargetR = (config.tipDiameter / 25.4) / 2;
+                const startX = stockRadius - Math.min(depth, stockRadius - tipTargetR);
+                gcode.push(pp.rapid(startX, 0, config.safeZ));
+                gcode.push(pp.linear(startX, 0, 0, config.feedRate));
+                for (let i = 1; i <= 100; i++) {
+                    const y = (i / 100) * shaftLen;
+                    const targetDia = getDiaAt(y);
+                    const targetR = (targetDia / 25.4) / 2;
+                    const matRemove = stockRadius - targetR;
+                    const x = stockRadius - Math.min(depth, matRemove);
+                    gcode.push(pp.linear(x, y, 0, config.feedRate));
+                    totalDist += shaftLen / 100;
+                }
+                gcode.push(pp.rapid(stockRadius, shaftLen, config.safeZ));
+            }
+            gcode.push(pp.comment('End program'));
+            gcode.push(...pp.footer().split('\n').filter(l => l));
+            const container = document.getElementById('gcodeOutput');
+            container.innerHTML = '';
+            container.style.counterReset = 'line';
+            let lineCount = 0;
+            gcode.forEach(line => {
+                const el = document.createElement('span');
+                el.className = 'gcode-line';
+                if (line.startsWith(';') || line.startsWith('(')) el.classList.add('comment');
+                else if (line.match(/^G0[^1]/)) el.classList.add('command');
+                else if (line.match(/^G0?1/)) el.classList.add('movement');
+                else if (line.startsWith('M') || line.startsWith('$') || line.startsWith('%') || line.startsWith('O')) el.classList.add('command');
+                el.textContent = line;
+                container.appendChild(el);
+                lineCount++;
+            });
+            document.getElementById('statLines').textContent = lineCount;
+            document.getElementById('statPasses').textContent = passCount;
+            document.getElementById('statRemoval').textContent = `${maxCut.toFixed(4)}"`;
+            const mins = Math.floor((totalDist * passCount) / config.feedRate);
+            const secs = Math.round(((totalDist * passCount) / config.feedRate - mins) * 60);
+            document.getElementById('statTime').textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+        }
+
+        function exportGCode() {
+            const lines = document.querySelectorAll('#gcodeOutput .gcode-line');
+            const content = Array.from(lines).map(l => l.textContent).join('\n');
+            const exts = { 'techno-isel': '.nc', 'grbl': '.gcode', 'mach3': '.nc', 'linuxcnc': '.ngc', 'fanuc': '.nc' };
+            const ext = exts[document.getElementById('postProcessor').value] || '.nc';
+            const blob = new Blob([content], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `shaft_taper_${Date.now()}${ext}`;
+            a.click();
+            showToast('G-Code exported!');
+        }
+
+        function copyGCode() {
+            const lines = document.querySelectorAll('#gcodeOutput .gcode-line');
+            navigator.clipboard.writeText(Array.from(lines).map(l => l.textContent).join('\n')).then(() => showToast('Copied!'));
+        }
+
+        function saveProject() {
+            const proj = {
+                shaftLength: document.getElementById('shaftLength').value,
+                inputInterval: document.getElementById('inputInterval').value,
+                stockDiameter: document.getElementById('stockDiameter').value,
+                ferruleLength: document.getElementById('ferruleLength').value,
+                postProcessor: document.getElementById('postProcessor').value,
+                feedRate: document.getElementById('feedRate').value,
+                spindleSpeed: document.getElementById('spindleSpeed').value,
+                stepOver: document.getElementById('stepOver').value,
+                safeZ: document.getElementById('safeZ').value,
+                units: document.getElementById('units').value,
+                diameterProfile: diameterProfile
+            };
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(proj, null, 2)], { type: 'application/json' }));
+            a.download = `shaft_taper_${Date.now()}.json`;
+            a.click();
+            showToast('Project saved!');
+        }
+
+        function loadProject() {
+            const input = document.createElement('input');
+            input.type = 'file'; input.accept = '.json';
+            input.onchange = (e) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const p = JSON.parse(ev.target.result);
+                        document.getElementById('shaftLength').value = p.shaftLength;
+                        document.getElementById('inputInterval').value = p.inputInterval;
+                        document.getElementById('stockDiameter').value = p.stockDiameter;
+                        document.getElementById('ferruleLength').value = p.ferruleLength;
+                        document.getElementById('postProcessor').value = p.postProcessor;
+                        document.getElementById('feedRate').value = p.feedRate;
+                        document.getElementById('spindleSpeed').value = p.spindleSpeed;
+                        document.getElementById('stepOver').value = p.stepOver;
+                        document.getElementById('safeZ').value = p.safeZ;
+                        document.getElementById('units').value = p.units;
+                        diameterProfile = {};
+                        Object.keys(p.diameterProfile).forEach(k => { diameterProfile[parseFloat(k)] = p.diameterProfile[k]; });
+                        rebuildDiameterInputs();
+                        showToast('Project loaded!');
+                    } catch (err) { showToast('Error loading'); }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            input.click();
+        }
+
+        function showToast(msg) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerHTML = `<span style="color:var(--accent-green)">✓</span> ${msg}`;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2500);
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
